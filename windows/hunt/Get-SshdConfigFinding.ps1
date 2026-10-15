@@ -1,4 +1,5 @@
 #Requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
     Read-only audit of sshd's effective config plus the files that can change it.

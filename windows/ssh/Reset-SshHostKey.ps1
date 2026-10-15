@@ -1,4 +1,5 @@
 #Requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
     Regenerates sshd's host keys (assume Red has copies -> MITM/impersonation).

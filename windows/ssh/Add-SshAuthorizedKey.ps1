@@ -1,4 +1,5 @@
 #Requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
     Appends a public key to a user's primary authorized keys file (from sshd's effective config).

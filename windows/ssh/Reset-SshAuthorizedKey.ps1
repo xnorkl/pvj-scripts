@@ -1,4 +1,5 @@
 #Requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
     Rewrites every discovered authorized keys file down to an allowlist (default: empty).

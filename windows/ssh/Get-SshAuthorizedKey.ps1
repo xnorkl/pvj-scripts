@@ -1,4 +1,5 @@
 #Requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
     Inventories every SSH key sshd will trust, per user profile, from sshd's effective config.

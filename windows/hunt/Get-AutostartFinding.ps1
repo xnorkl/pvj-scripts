@@ -1,4 +1,5 @@
 #Requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
     Read-only hunt for Windows persistence (autostart extensibility points).
