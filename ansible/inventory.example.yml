@@ -1,4 +1,4 @@
-# Copy to inventory.yml (gitignored: it holds range credentials) and fill in from the handout.
+# Usage: cp inventory.example.yml inventory.yml, then fill in from the handout
 all:
   children:
     linux:

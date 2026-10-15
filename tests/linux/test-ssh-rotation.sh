@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# End-to-end check of linux/ssh/*.sh and linux/hunt/get-sshd-config-findings.sh in a throwaway Ubuntu container (no range access needed).
-# Plants Red keys (incl. a Match-block AuthorizedKeysFile redirect), rotates, then proves
-# a re-planted Red key is rejected and the team key still works.
-# Usage: ./tests/linux/test-ssh-rotation.sh
+# Usage: ./tests/linux/test-ssh-rotation.sh   # needs docker
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 docker run --rm -v "$PWD":/s:ro ubuntu:24.04 bash -c "$(sed -n '/^# --- container ---$/,$p' "$0")"

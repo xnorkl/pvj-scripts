@@ -1,7 +1,4 @@
-# Run every read-only hunt script on every host and fetch the findings to
-# findings/<run>/<host>/<script>.tsv  (TSV, no header: status check object detail)
-# Scripts are re-copied each run, so a Red-tampered copy on the host gets overwritten.
-# Usage: ansible-playbook hunt.yml [-e run=baseline]   then: diff -r findings/<a> findings/<b>
+# Usage: ansible-playbook hunt.yml [-e run=baseline]   # -> ../findings/<run>/<host>/*.tsv
 - name: Pick one run id for every host
   hosts: localhost
   gather_facts: false

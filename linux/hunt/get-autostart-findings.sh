@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-# Read-only hunt for Linux persistence: cron/at, systemd (units, drop-ins, timers, transient,
-# generators, user units), init scripts, shell init files, ld.so.preload, udev, motd, xdg, apt hooks.
-#   FAIL  file content looks malicious (reverse shell, /tmp exec, pipe-to-shell, alias sudo=, ...)
-#   WARN  file is not owned by any package (dpkg/rpm) -> someone added it: review
-#   INFO  every active cron/at entry, so Red's quiet one-liners still show up
-# Output TSV (no header): status  check  object  detail
-# Exit: 0 clean, 1 error, 2 at least one FAIL  (Ansible: failed_when: rc == 1)
-# Usage: sudo ./get-autostart-findings.sh
+# Usage: sudo ./get-autostart-findings.sh   # TSV: status check object detail; exit 2 = FAIL found
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 1; }
 

@@ -1,14 +1,8 @@
 #Requires -RunAsAdministrator
+
 <#
-.SYNOPSIS
-    Regenerates sshd's host keys (assume Red has copies -> MITM/impersonation).
-.DESCRIPTION
-    Moves the default host keys to %ProgramData%\ssh\hostkeys-<ts>\, runs `ssh-keygen -A`,
-    locks ACLs to SYSTEM/Administrators, validates with `sshd -t` (restoring on failure) and
-    restarts sshd. Clients will see a host-key-changed warning: share the printed fingerprints.
-    Restarting sshd may drop SSH sessions; run from RDP/console.
 .EXAMPLE
-    .\Reset-SshHostKey.ps1 -WhatIf
+    .\Reset-SshHostKey.ps1 [-WhatIf]
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param()

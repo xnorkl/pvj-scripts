@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
-# Runs ansible/hunt.yml and ansible/ssh-rotate.yml against a throwaway container over the
-# community.docker connection (no SSH, so nothing can be locked out). Checks that findings are
-# fetched, the Red key is revoked, and a second ssh-rotate run reports changed=0.
-# Needs: ansible-core + community.docker on the controller.
-# Usage: ./tests/linux/test-ansible.sh
+# Usage: ./tests/linux/test-ansible.sh   # needs docker, ansible-core, community.docker
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 name=pvj-ansible-test
 tmp=$(mktemp -d)
 docker rm -f "$name" >/dev/null 2>&1 || true
-trap 'docker rm -f "$name" >/dev/null; rm -rf "$tmp" findings/ansible-test' EXIT
+root=$PWD
+trap 'docker rm -f "$name" >/dev/null; rm -rf "$tmp" "$root/findings/ansible-test"' EXIT
 
 docker run -d --name "$name" ubuntu:24.04 sleep infinity >/dev/null
 docker exec "$name" bash -c 'apt-get update -qq && apt-get install -y -qq python3 sudo openssh-server cron >/dev/null 2>&1 && mkdir -p /run/sshd && /usr/sbin/sshd'

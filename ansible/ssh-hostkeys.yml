@@ -1,8 +1,4 @@
-# Regenerate SSH host keys. NOT idempotent: every run rotates them again, so the plays are
-# tagged never and only run when asked for:
-#   ansible-playbook ssh-hostkeys.yml --tags hostkeys
-# Linux: the new public keys are read back over the still-open, already-authenticated connection
-# and written to the controller's known_hosts, so later plays connect without a mismatch.
+# Usage: ansible-playbook ssh-hostkeys.yml --tags hostkeys
 - name: Rotate host keys on Linux
   hosts: linux
   become: true

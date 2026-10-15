@@ -1,10 +1,6 @@
 #Requires -RunAsAdministrator
+
 <#
-.SYNOPSIS
-    Appends a public key to a user's primary authorized keys file (from sshd's effective config).
-.DESCRIPTION
-    Run this BEFORE Revoke-SshKey / Reset-SshAuthorizedKey so the team keeps key access.
-    Admin accounts resolve to administrators_authorized_keys. ACLs are set so sshd accepts the file.
 .EXAMPLE
     .\Add-SshAuthorizedKey.ps1 -UserName Administrator -PublicKeyPath .\team.pub
 #>

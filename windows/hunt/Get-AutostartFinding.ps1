@@ -1,21 +1,8 @@
 #Requires -RunAsAdministrator
+
 <#
-.SYNOPSIS
-    Read-only hunt for Windows persistence (autostart extensibility points).
-.DESCRIPTION
-    Checks Run/RunOnce keys (HKLM + loaded user hives), Winlogon Shell/Userinit, AppInit_DLLs,
-    IFEO debuggers / SilentProcessExit, LSA packages, services (path, quoting, signature, ServiceDll),
-    scheduled tasks (incl. hidden tasks with the SD removed), WMI event consumers, startup folders,
-    PowerShell profiles, BITS notify commands, netsh helpers and per-user COM hijacks.
-      FAIL  command looks malicious (encoded PS, LOLBin download, user-writable path, ...) or a
-            mechanism that is never legit on a game box (IFEO debugger, WMI command consumer, ...)
-      WARN  third-party / unusual entry: review
-    Emits: Status, Check, Object, Detail.
-    Exit code: 0 clean, 1 error, 2 at least one FAIL (Ansible: failed_when: rc == 1).
 .EXAMPLE
-    .\Get-AutostartFinding.ps1 | Format-Table -AutoSize -Wrap
-.EXAMPLE
-    .\Get-AutostartFinding.ps1 | Where-Object Status -eq FAIL
+    .\Get-AutostartFinding.ps1 | Where-Object Status -eq FAIL   # exit 2 = FAIL found
 #>
 [CmdletBinding()]
 param()

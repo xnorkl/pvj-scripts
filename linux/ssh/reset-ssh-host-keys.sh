@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Regenerate every host key sshd loads (assume Red has copies -> MITM/impersonation).
-# Old keys go to /root/ssh-hostkeys-<ts>/; restored automatically if sshd -t fails.
-# Clients will see a host-key-changed warning: share the printed fingerprints with the team.
 # Usage: sudo ./reset-ssh-host-keys.sh
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 1; }

@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Revoke keys server-wide via a KRL (RevokedKeys). A revoked key is rejected even if Red
-# re-plants it in some authorized_keys later. Keys found in [approved.pub] are never revoked.
-# Input: get-ssh-authorized-keys.sh TSV on stdin.
 # Usage: sudo ./get-ssh-authorized-keys.sh | sudo ./revoke-ssh-keys.sh [approved.pub]
-# NOTE: if the KRL file is ever missing/unreadable, sshd rejects ALL pubkey auth (fails closed).
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 1; }
 approved=${1:-/dev/null}

@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Inventory every SSH key sshd will trust, per user, using sshd's *effective* config
-# (catches AuthorizedKeysFile redirects and Match-block overrides, not just ~/.ssh).
-# Output (TSV): user  file  type  fingerprint  comment  options  key
-# Alternate trust paths (AuthorizedKeysCommand, TrustedUserCAKeys, ...) are warned on stderr.
 # Usage: sudo ./get-ssh-authorized-keys.sh > keys.tsv
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 1; }
