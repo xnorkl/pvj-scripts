@@ -1,1 +1,6 @@
 *.pdf
+findings/
+ansible/inventory.yml
+team
+team.pub
+approved.pub
