@@ -1,0 +1,33 @@
+# Regenerate SSH host keys. NOT idempotent: every run rotates them again, so the plays are
+# tagged never and only run when asked for:
+#   ansible-playbook ssh-hostkeys.yml --tags hostkeys
+# Linux: the new public keys are read back over the still-open, already-authenticated connection
+# and written to the controller's known_hosts, so later plays connect without a mismatch.
+- name: Rotate host keys on Linux
+  hosts: linux
+  become: true
+  gather_facts: false
+  tags: [never, hostkeys]
+  tasks:
+    - ansible.builtin.copy: { src: ../linux/ssh/reset-ssh-host-keys.sh, dest: /opt/pvj/ssh/, mode: "0700" }
+    - name: Rotate, then print the new public keys
+      ansible.builtin.shell: |
+        /opt/pvj/ssh/reset-ssh-host-keys.sh >&2
+        for k in $(sshd -T | awk '$1=="hostkey"{print $2}'); do cat "$k.pub"; done
+      register: hk
+    - name: Update controller known_hosts
+      # ponytail: assumes port 22; non-standard ports need "[host]:port" here
+      ansible.builtin.known_hosts:
+        name: "{{ ansible_host | default(inventory_hostname) }}"
+        key: "{{ ansible_host | default(inventory_hostname) }} {{ item.split()[:2] | join(' ') }}"
+      loop: "{{ hk.stdout_lines }}"
+      delegate_to: localhost
+      become: false
+
+- name: Rotate host keys on Windows
+  hosts: windows
+  gather_facts: false
+  tags: [never, hostkeys]
+  tasks:
+    - ansible.windows.win_copy: { src: ../windows/ssh/Reset-SshHostKey.ps1, dest: C:\pvj\ssh\ }
+    - ansible.windows.win_shell: C:\pvj\ssh\Reset-SshHostKey.ps1

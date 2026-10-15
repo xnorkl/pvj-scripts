@@ -1,0 +1,61 @@
+# Rotate SSH user keys: add the team key, revoke every other key (KRL), reset key files.
+#   team_pub      ONE public key to add for ssh_user (default ../team.pub)
+#   approved_pub  every key to keep. MUST include the Ansible controller's key if Ansible
+#                 logs in with a key, or this play locks Ansible out (default: team_pub)
+# Usage: ansible-playbook ssh-rotate.yml [-e ssh_user=root] [-e approved_pub=../approved.pub]
+- name: Rotate SSH keys on Linux
+  hosts: linux
+  become: true
+  gather_facts: false
+  vars:
+    dest: /opt/pvj/ssh
+    team_pub: "{{ playbook_dir }}/../team.pub"
+    approved_pub: "{{ team_pub }}"
+    ssh_user: root
+  tasks:
+    - ansible.builtin.copy: { src: ../linux/ssh/, dest: "{{ dest }}/", mode: "0700" }
+    - ansible.builtin.copy: { src: "{{ team_pub }}", dest: "{{ dest }}/team.pub", mode: "0600" }
+    - ansible.builtin.copy: { src: "{{ approved_pub }}", dest: "{{ dest }}/approved.pub", mode: "0600" }
+    - name: Add team key
+      ansible.builtin.command: ./add-ssh-authorized-key.sh {{ ssh_user }} team.pub
+      args: { chdir: "{{ dest }}" }
+      register: r
+      changed_when: "'no change' not in r.stdout"
+    - name: Revoke every other key (must run before reset)
+      ansible.builtin.shell: ./get-ssh-authorized-keys.sh | ./revoke-ssh-keys.sh approved.pub
+      args: { chdir: "{{ dest }}" }
+      register: r
+      changed_when: "'no change' not in r.stdout"
+    - name: Reset key files to the approved keys
+      ansible.builtin.shell: ./get-ssh-authorized-keys.sh | ./reset-ssh-authorized-keys.sh approved.pub
+      args: { chdir: "{{ dest }}" }
+      register: r
+      changed_when: "'no change' not in r.stdout"
+
+- name: Rotate SSH keys on Windows
+  hosts: windows
+  gather_facts: false
+  vars:
+    dest: C:\pvj\ssh
+    team_pub: "{{ playbook_dir }}/../team.pub"
+    approved_pub: "{{ team_pub }}"
+    ssh_user: Administrator
+  tasks:
+    - ansible.windows.win_copy: { src: ../windows/ssh/, dest: "{{ dest }}\\" }
+    - ansible.windows.win_copy: { src: "{{ team_pub }}", dest: "{{ dest }}\\team.pub" }
+    - ansible.windows.win_copy: { src: "{{ approved_pub }}", dest: "{{ dest }}\\approved.pub" }
+    - name: Add team key
+      ansible.windows.win_shell: .\Add-SshAuthorizedKey.ps1 -UserName '{{ ssh_user }}' -PublicKeyPath team.pub
+      args: { chdir: "{{ dest }}" }
+      register: r
+      changed_when: "'no change' not in r.stdout"
+    - name: Revoke every other key (must run before reset)
+      ansible.windows.win_shell: .\Get-SshAuthorizedKey.ps1 | .\Revoke-SshKey.ps1 -ApprovedKeyPath approved.pub
+      args: { chdir: "{{ dest }}" }
+      register: r
+      changed_when: "'no change' not in r.stdout"
+    - name: Reset key files to the approved keys
+      ansible.windows.win_shell: .\Get-SshAuthorizedKey.ps1 | .\Reset-SshAuthorizedKey.ps1 -ApprovedKeyPath approved.pub
+      args: { chdir: "{{ dest }}" }
+      register: r
+      changed_when: "'no change' not in r.stdout"

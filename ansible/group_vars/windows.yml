@@ -1,0 +1,5 @@
+# WinRM, not SSH: our scripts restart sshd, which would drop an SSH-based Ansible session.
+ansible_connection: winrm
+ansible_port: 5985
+ansible_winrm_transport: ntlm          # NTLM message encryption over HTTP
+ansible_winrm_server_cert_validation: ignore

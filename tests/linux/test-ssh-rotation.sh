@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# End-to-end check of linux/*.sh in a throwaway Ubuntu container (no range access needed).
+# End-to-end check of linux/ssh/*.sh and linux/hunt/get-sshd-config-findings.sh in a throwaway Ubuntu container (no range access needed).
 # Plants Red keys (incl. a Match-block AuthorizedKeysFile redirect), rotates, then proves
 # a re-planted Red key is rejected and the team key still works.
-# Usage: ./tests/test-linux-ssh-rotation.sh
+# Usage: ./tests/linux/test-ssh-rotation.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 docker run --rm -v "$PWD":/s:ro ubuntu:24.04 bash -c "$(sed -n '/^# --- container ---$/,$p' "$0")"
 exit
 # --- container ---
@@ -19,7 +19,7 @@ install -d -m700 -o alice /home/alice/.ssh; cat /tmp/red.pub > /home/alice/.ssh/
 mkdir -p /var/tmp/.k; echo "command=\"/bin/sh -i\",no-pty $(cat /tmp/red.pub)" > /var/tmp/.k/svc; chown -R svc /var/tmp/.k
 printf 'Match User svc\n  AuthorizedKeysFile /var/tmp/.k/%%u\n' >> /etc/ssh/sshd_config
 /usr/sbin/sshd
-cd /s/linux
+cd /s/linux/ssh
 echo "== inventory"; ./get-ssh-authorized-keys.sh | cut -f1-5
 ./add-ssh-authorized-key.sh alice /tmp/team.pub
 ./get-ssh-authorized-keys.sh > /tmp/keys.tsv
@@ -41,10 +41,10 @@ echo "PASS empty stdin rejected"
 echo "== final inventory"; ./get-ssh-authorized-keys.sh | cut -f1-4
 set -o pipefail
 echo "== audit: stock config (WARN/INFO only) must exit 0"
-./get-sshd-config-findings.sh | cut -f1-3 && echo "PASS audit clean exit" || { echo "FAIL audit rc=$?"; exit 1; }
+../hunt/get-sshd-config-findings.sh | cut -f1-3 && echo "PASS audit clean exit" || { echo "FAIL audit rc=$?"; exit 1; }
 echo "== audit: plant Red persistence, must FAIL with rc 2"
 printf 'PermitUserEnvironment yes\nForceCommand /var/tmp/.k/wrap\n' > /etc/ssh/sshd_config.d/99-red.conf
 touch /etc/ssh/sshrc
-rc=0; out=$(./get-sshd-config-findings.sh) || rc=$?
+rc=0; out=$(../hunt/get-sshd-config-findings.sh) || rc=$?
 grep -P '^FAIL\t' <<<"$out"
 [[ $rc -eq 2 ]] && [[ $(grep -cP '^FAIL\t' <<<"$out") -eq 3 ]] && echo "PASS audit caught persistence" || { echo "FAIL audit rc=$rc"; exit 1; }
