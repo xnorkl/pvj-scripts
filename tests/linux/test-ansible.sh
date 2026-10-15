@@ -9,7 +9,8 @@ cd "$(dirname "$0")/../.."
 name=pvj-ansible-test
 tmp=$(mktemp -d)
 docker rm -f "$name" >/dev/null 2>&1 || true
-trap 'docker rm -f "$name" >/dev/null; rm -rf "$tmp" findings/ansible-test' EXIT
+root=$PWD
+trap 'docker rm -f "$name" >/dev/null; rm -rf "$tmp" "$root/findings/ansible-test"' EXIT
 
 docker run -d --name "$name" ubuntu:24.04 sleep infinity >/dev/null
 docker exec "$name" bash -c 'apt-get update -qq && apt-get install -y -qq python3 sudo openssh-server cron >/dev/null 2>&1 && mkdir -p /run/sshd && /usr/sbin/sshd'
