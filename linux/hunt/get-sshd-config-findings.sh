@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Read-only audit of sshd's *effective* config plus the files that can change it.
-# Prints findings only (PASS is silent), TSV: status  setting  value  why
+# Prints findings only (PASS is silent), TSV (no header): status  check  object  detail
 # Exit: 0 clean, 1 error, 2 at least one FAIL  (Ansible: failed_when: rc == 1)
 # Audit only: fix by hand. Scorebot may rely on passwords and SSH must stay up.
 # Usage: sudo ./get-sshd-config-findings.sh

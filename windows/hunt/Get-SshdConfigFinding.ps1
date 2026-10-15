@@ -3,7 +3,7 @@
 .SYNOPSIS
     Read-only audit of sshd's effective config plus the files that can change it.
 .DESCRIPTION
-    Emits findings only (PASS is silent): Status, Setting, Value, Why.
+    Emits findings only (PASS is silent): Status, Check, Object, Detail.
     Exit code: 0 clean, 1 error, 2 at least one FAIL (Ansible: failed_when: rc == 1).
     Audit only: fix by hand. Scorebot may rely on passwords and SSH must stay up.
 .EXAMPLE
@@ -17,9 +17,9 @@ if (-not $svc -or $svc.PathName -notmatch '^"?([^"]+sshd\.exe)') { throw 'sshd s
 $cfg = & $Matches[1] -T
 if ($LASTEXITCODE) { throw 'sshd -T failed' }
 $script:fail = $false
-function Out-Finding($Status, $Setting, $Value, $Why) {
+function Out-Finding($Status, $Check, $Object, $Detail) {
     if ($Status -eq 'FAIL') { $script:fail = $true }
-    [pscustomobject]@{ Status = $Status; Setting = $Setting; Value = $Value; Why = $Why }
+    [pscustomobject]@{ Status = $Status; Check = $Check; Object = $Object; Detail = $Detail }
 }
 
 # setting ; value must match (regex) ; status if not ; why
