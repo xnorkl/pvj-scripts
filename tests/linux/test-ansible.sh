@@ -6,7 +6,7 @@ name=pvj-ansible-test
 tmp=$(mktemp -d)
 docker rm -f "$name" >/dev/null 2>&1 || true
 root=$PWD
-trap 'docker rm -f "$name" >/dev/null; rm -rf "$tmp" "$root/findings/ansible-test"' EXIT
+trap 'docker rm -f "$name" >/dev/null; rm -rf "$tmp" "$root/findings/ansible-test"; rmdir "$root/findings" 2>/dev/null' EXIT
 
 docker run -d --name "$name" ubuntu:24.04 sleep infinity >/dev/null
 docker exec "$name" bash -c 'apt-get update -qq && apt-get install -y -qq python3 sudo openssh-server cron >/dev/null 2>&1 && mkdir -p /run/sshd && /usr/sbin/sshd'
