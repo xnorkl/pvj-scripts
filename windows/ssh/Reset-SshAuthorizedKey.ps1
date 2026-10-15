@@ -1,13 +1,8 @@
 #Requires -RunAsAdministrator
 
 <#
-.SYNOPSIS
-    Rewrites every discovered authorized keys file down to an allowlist (default: empty).
-.DESCRIPTION
-    Takes Get-SshAuthorizedKey output on the pipeline. Originals are copied to
-    %ProgramData%\ssh\quarantine-<ts>\ as evidence. Files are rewritten in place, so ACLs are kept.
 .EXAMPLE
-    .\Get-SshAuthorizedKey.ps1 | .\Reset-SshAuthorizedKey.ps1 -ApprovedKeyPath .\team.pub -WhatIf
+    .\Get-SshAuthorizedKey.ps1 | .\Reset-SshAuthorizedKey.ps1 -ApprovedKeyPath .\team.pub [-WhatIf]
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(

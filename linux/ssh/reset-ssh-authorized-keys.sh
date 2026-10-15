@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Rewrite every discovered authorized keys file down to an allowlist (default: empty).
-# Originals are copied to /root/ssh-quarantine-<ts>/ as evidence.
-# Input: get-ssh-authorized-keys.sh TSV on stdin.
 # Usage: sudo ./get-ssh-authorized-keys.sh | sudo ./reset-ssh-authorized-keys.sh [approved.pub]
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 1; }

@@ -1,16 +1,8 @@
 #Requires -RunAsAdministrator
 
 <#
-.SYNOPSIS
-    Inventories every SSH key sshd will trust, per user profile, from sshd's effective config.
-.DESCRIPTION
-    Uses `sshd -T -C user=<name>` so AuthorizedKeysFile redirects and Match blocks are honoured.
-    administrators_authorized_keys is always included. Alternate trust paths
-    (AuthorizedKeysCommand, TrustedUserCAKeys, ...) are emitted as warnings.
 .EXAMPLE
     .\Get-SshAuthorizedKey.ps1 | Export-Csv keys.csv -NoTypeInformation
-.EXAMPLE
-    .\Get-SshAuthorizedKey.ps1 | Format-Table User, Path, Fingerprint, Comment
 #>
 [CmdletBinding()]
 param()

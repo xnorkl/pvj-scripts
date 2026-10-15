@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# End-to-end check of linux/hunt/get-autostart-findings.sh in a throwaway Ubuntu container.
-# Stock image must exit 0; planted Red persistence must FAIL/WARN/INFO as expected.
-# Usage: ./tests/linux/test-autostart.sh
+# Usage: ./tests/linux/test-autostart.sh   # needs docker
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 docker run --rm -v "$PWD":/s:ro ubuntu:24.04 bash -c "$(sed -n '/^# --- container ---$/,$p' "$0")"

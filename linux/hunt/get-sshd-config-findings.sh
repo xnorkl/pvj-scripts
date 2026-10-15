@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Read-only audit of sshd's *effective* config plus the files that can change it.
-# Prints findings only (PASS is silent), TSV (no header): status  check  object  detail
-# Exit: 0 clean, 1 error, 2 at least one FAIL  (Ansible: failed_when: rc == 1)
-# Audit only: fix by hand. Scorebot may rely on passwords and SSH must stay up.
-# Usage: sudo ./get-sshd-config-findings.sh
+# Usage: sudo ./get-sshd-config-findings.sh   # TSV: status check object detail; exit 2 = FAIL found
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 1; }
 cfg=$(sshd -T)

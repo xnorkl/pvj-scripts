@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Runs ansible/hunt.yml and ansible/ssh-rotate.yml against a throwaway container over the
-# community.docker connection (no SSH, so nothing can be locked out). Checks that findings are
-# fetched, the Red key is revoked, and a second ssh-rotate run reports changed=0.
-# Needs: ansible-core + community.docker on the controller.
-# Usage: ./tests/linux/test-ansible.sh
+# Usage: ./tests/linux/test-ansible.sh   # needs docker, ansible-core, community.docker
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 name=pvj-ansible-test

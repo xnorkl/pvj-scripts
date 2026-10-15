@@ -1,16 +1,8 @@
 #Requires -RunAsAdministrator
 
 <#
-.SYNOPSIS
-    Revokes keys server-wide via a KRL (RevokedKeys) so re-planted copies are still rejected.
-.DESCRIPTION
-    Takes Get-SshAuthorizedKey output on the pipeline. Keys in -ApprovedKeyPath are never revoked.
-    Inserts RevokedKeys at the top of sshd_config if not set, validates with `sshd -t`
-    (restoring the config on failure) and restarts sshd.
-    NOTE: if the KRL file goes missing or unreadable, sshd rejects ALL pubkey auth (fails closed).
-    Restarting sshd may drop SSH sessions; run from RDP/console.
 .EXAMPLE
-    .\Get-SshAuthorizedKey.ps1 | .\Revoke-SshKey.ps1 -ApprovedKeyPath .\team.pub -WhatIf
+    .\Get-SshAuthorizedKey.ps1 | .\Revoke-SshKey.ps1 -ApprovedKeyPath .\team.pub [-WhatIf]
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(

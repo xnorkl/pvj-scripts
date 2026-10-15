@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Append a public key to a user's primary authorized_keys file (from sshd's effective config).
-# Run this BEFORE revoke/reset so the team keeps key access.
-# Usage: sudo ./add-ssh-authorized-key.sh <user> <team-key.pub>
+# Usage: sudo ./add-ssh-authorized-key.sh <user> <team.pub>
 set -euo pipefail
 [[ $EUID -eq 0 && $# -eq 2 ]] || { echo "usage (root): $0 <user> <pubkey-file>" >&2; exit 1; }
 user=$1 pub=$2

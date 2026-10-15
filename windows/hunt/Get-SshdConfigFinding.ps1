@@ -1,14 +1,8 @@
 #Requires -RunAsAdministrator
 
 <#
-.SYNOPSIS
-    Read-only audit of sshd's effective config plus the files that can change it.
-.DESCRIPTION
-    Emits findings only (PASS is silent): Status, Check, Object, Detail.
-    Exit code: 0 clean, 1 error, 2 at least one FAIL (Ansible: failed_when: rc == 1).
-    Audit only: fix by hand. Scorebot may rely on passwords and SSH must stay up.
 .EXAMPLE
-    .\Get-SshdConfigFinding.ps1 | Format-Table -AutoSize
+    .\Get-SshdConfigFinding.ps1 | Format-Table -AutoSize   # exit 2 = FAIL found
 #>
 [CmdletBinding()]
 param()

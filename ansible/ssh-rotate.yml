@@ -1,8 +1,4 @@
-# Rotate SSH user keys: add the team key, revoke every other key (KRL), reset key files.
-#   team_pub      ONE public key to add for ssh_user (default ../team.pub)
-#   approved_pub  every key to keep. MUST include the Ansible controller's key if Ansible
-#                 logs in with a key, or this play locks Ansible out (default: team_pub)
-# Usage: ansible-playbook ssh-rotate.yml [-e ssh_user=root] [-e approved_pub=../approved.pub]
+# Usage: ansible-playbook ssh-rotate.yml [-e ssh_user=root] [-e team_pub=../team.pub] [-e approved_pub=../approved.pub]
 - name: Rotate SSH keys on Linux
   hosts: linux
   become: true
