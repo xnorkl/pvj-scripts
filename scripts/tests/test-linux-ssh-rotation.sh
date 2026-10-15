@@ -39,3 +39,12 @@ echo "== second run must be a no-op (ansible idempotency)"
 if ./revoke-ssh-keys.sh </dev/null 2>/dev/null; then echo "FAIL revoke accepted empty stdin"; exit 1; fi
 echo "PASS empty stdin rejected"
 echo "== final inventory"; ./get-ssh-authorized-keys.sh | cut -f1-4
+set -o pipefail
+echo "== audit: stock config (WARN/INFO only) must exit 0"
+./get-sshd-config-findings.sh | cut -f1-3 && echo "PASS audit clean exit" || { echo "FAIL audit rc=$?"; exit 1; }
+echo "== audit: plant Red persistence, must FAIL with rc 2"
+printf 'PermitUserEnvironment yes\nForceCommand /var/tmp/.k/wrap\n' > /etc/ssh/sshd_config.d/99-red.conf
+touch /etc/ssh/sshrc
+rc=0; out=$(./get-sshd-config-findings.sh) || rc=$?
+grep -P '^FAIL\t' <<<"$out"
+[[ $rc -eq 2 ]] && [[ $(grep -cP '^FAIL\t' <<<"$out") -eq 3 ]] && echo "PASS audit caught persistence" || { echo "FAIL audit rc=$rc"; exit 1; }
