@@ -26,7 +26,7 @@ Read-only. FAIL = looks malicious, WARN = review, INFO = inventory.
 | Persistence | `get-autostart-findings.sh` | `Get-AutostartFinding.ps1` |
 | sshd config | `get-sshd-config-findings.sh` | `Get-SshdConfigFinding.ps1` |
 
-## Script rules (every new script follows these)
+## Script rules
 
 | | Hunts (`get-*` / `Get-*`, in `hunt/`) | Changes (in `ssh/`, ...) |
 |---|---|---|
@@ -58,7 +58,7 @@ ansible-playbook hunt.yml -e run=t1 && diff -r ../findings/baseline ../findings/
 ansible-playbook ssh-rotate.yml                          # uses ../team.pub; -e approved_pub=... for extra keys
 ansible-playbook ssh-hostkeys.yml --tags hostkeys        # never runs without the tag; refreshes known_hosts
 ```
-Hunt scripts are re-copied every run (a Red-modified copy gets overwritten) and findings are deleted from the host after they're fetched.
+Hunt scripts are re-copied per run (a Red-modified copy gets overwritten) and findings are deleted from the host after they're fetched.
 
 ## Gotchas
 - Run revoke (3) before reset (4). Revoke reads the keys that are still in the files.
@@ -67,4 +67,4 @@ Hunt scripts are re-copied every run (a Red-modified copy gets overwritten) and 
 - Windows: use WinRM, not SSH; `Restart-Service sshd` drops SSH sessions. Use `-WhatIf` for a dry run.
 - Passwords are untouched. Change them separately.
 
-Tests (Docker, no range needed): `./tests/linux/test-ssh-rotation.sh`, `./tests/linux/test-autostart.sh`, `./tests/linux/test-ansible.sh` (also needs `ansible-core` + `community.docker`)
+Tests (Docker only): `./tests/linux/test-ssh-rotation.sh`, `./tests/linux/test-autostart.sh`, `./tests/linux/test-ansible.sh` (also needs `ansible-core` + `community.docker`)
