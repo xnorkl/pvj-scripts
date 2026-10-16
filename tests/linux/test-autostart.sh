@@ -8,7 +8,7 @@ exit
 set -eo pipefail
 apt-get update -qq >/dev/null && apt-get install -y -qq cron >/dev/null 2>&1
 useradd -m alice
-cd /s/linux/hunt
+cd /s/linux/hunt/continuous
 echo "== stock image"
 ./get-autostart-findings.sh | grep -v '^INFO' || true
 ./get-autostart-findings.sh >/dev/null && echo "PASS stock exits 0" || { echo "FAIL stock rc=$?"; exit 1; }

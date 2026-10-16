@@ -1,10 +1,11 @@
-# Usage: ansible-playbook hunt.yml [-e run=baseline]   # -> ../findings/<run>/<host>/*.tsv
+# Usage: ansible-playbook hunt.yml [-e run=baseline] [--tags continuous|active]   # -> ../findings/<run>/<host>/*.tsv
 - name: Pick one run id for every host
   hosts: localhost
   gather_facts: false
   tasks:
     - ansible.builtin.set_fact:
         run_id: "{{ run | default(lookup('pipe', 'date +%Y%m%d-%H%M%S')) }}"
+      tags: always
 
 - name: Hunt Linux
   hosts: linux
@@ -13,28 +14,46 @@
   vars:
     dest: /opt/pvj/hunt
     out: /opt/pvj/findings
+    run_hunts: |
+      rc=0
+      for s in {{ glob }}; do
+        [ -e "$s" ] || continue
+        n=$(basename "$s" .sh)
+        "$s" > "{{ out }}/$n.tsv" || { r=$?; [ "$r" -eq 2 ] || { echo "$n failed rc=$r" >&2; rc=1; }; }
+        echo "$n: $(grep -c '^FAIL' "{{ out }}/$n.tsv") FAIL, $(grep -c '^WARN' "{{ out }}/$n.tsv") WARN"
+      done
+      exit $rc
   tasks:
-    - ansible.builtin.copy: { src: ../linux/hunt/, dest: "{{ dest }}/", mode: "0700" }
-    - ansible.builtin.file: { path: "{{ out }}", state: directory, mode: "0700" }
-    - name: Run hunts (rc 2 = findings, not an error)
-      ansible.builtin.shell: |
-        rc=0
-        for s in {{ dest }}/get-*.sh; do
-          n=$(basename "$s" .sh)
-          "$s" > "{{ out }}/$n.tsv" || { r=$?; [ "$r" -eq 2 ] || { echo "$n failed rc=$r" >&2; rc=1; }; }
-          echo "$n: $(grep -c '^FAIL' "{{ out }}/$n.tsv") FAIL, $(grep -c '^WARN' "{{ out }}/$n.tsv") WARN"
-        done
-        exit $rc
+    - name: Copy hunt scripts
+      ansible.builtin.copy: { src: ../linux/hunt/, dest: "{{ dest }}/", mode: "0700" }
+      tags: always
+    - name: Ensure findings dir
+      ansible.builtin.file: { path: "{{ out }}", state: directory, mode: "0700" }
+      tags: always
+    - name: Run continuous hunts (rc 2 = findings, not an error)
+      ansible.builtin.shell: "{{ run_hunts }}"
+      vars: { glob: "{{ dest }}/continuous/get-*.sh" }
       changed_when: false
-    - ansible.builtin.find: { paths: "{{ out }}", patterns: "*.tsv" }
+      tags: [continuous]
+    - name: Run active hunts (rc 2 = findings, not an error)
+      ansible.builtin.shell: "{{ run_hunts }}"
+      vars: { glob: "{{ dest }}/active/get-*.sh" }
+      changed_when: false
+      tags: [active]
+    - name: Collect findings
+      ansible.builtin.find: { paths: "{{ out }}", patterns: "*.tsv" }
       register: found
-    - ansible.builtin.fetch:
+      tags: always
+    - name: Fetch findings to the controller
+      ansible.builtin.fetch:
         src: "{{ item.path }}"
         dest: "{{ playbook_dir }}/../findings/{{ hostvars.localhost.run_id }}/{{ inventory_hostname }}/"
         flat: true
       loop: "{{ found.files }}"
+      tags: always
     - name: Don't leave findings on the box for Red to read
       ansible.builtin.file: { path: "{{ out }}", state: absent }
+      tags: always
 
 - name: Hunt Windows
   hosts: windows
@@ -42,29 +61,43 @@
   vars:
     dest: C:\pvj\hunt
     out: C:\pvj\findings
+    run_hunts_win: |
+      New-Item -ItemType Directory -Force '{{ out }}' | Out-Null
+      $rc = 0
+      foreach ($s in Get-ChildItem '{{ dest }}\{{ glob }}') {
+          $global:LASTEXITCODE = 0
+          try { $r = @(& $s.FullName) } catch { Write-Error "$($s.BaseName) failed: $_"; $rc = 1; continue }
+          if ($LASTEXITCODE -eq 1) { $rc = 1 }
+          $r | ForEach-Object { ($_.PSObject.Properties.Value -replace "[`t`r`n]+", ' ') -join "`t" } |
+              Set-Content "{{ out }}\$($s.BaseName).tsv"
+          "$($s.BaseName): $(@($r | Where-Object Status -eq FAIL).Count) FAIL, $(@($r | Where-Object Status -eq WARN).Count) WARN"
+      }
+      exit $rc
   tasks:
-    - ansible.windows.win_copy: { src: ../windows/hunt/, dest: "{{ dest }}\\" }
-    - name: Run hunts (rc 2 = findings, not an error)
-      ansible.windows.win_shell: |
-        New-Item -ItemType Directory -Force '{{ out }}' | Out-Null
-        $rc = 0
-        foreach ($s in Get-ChildItem '{{ dest }}\Get-*.ps1') {
-            $global:LASTEXITCODE = 0
-            try { $r = @(& $s.FullName) } catch { Write-Error "$($s.BaseName) failed: $_"; $rc = 1; continue }
-            if ($LASTEXITCODE -eq 1) { $rc = 1 }
-            # same TSV as Linux: no header, no quotes, tabs/newlines flattened
-            $r | ForEach-Object { ($_.PSObject.Properties.Value -replace "[`t`r`n]+", ' ') -join "`t" } |
-                Set-Content "{{ out }}\$($s.BaseName).tsv"
-            "$($s.BaseName): $(@($r | Where-Object Status -eq FAIL).Count) FAIL, $(@($r | Where-Object Status -eq WARN).Count) WARN"
-        }
-        exit $rc
+    - name: Copy hunt scripts
+      ansible.windows.win_copy: { src: ../windows/hunt/, dest: "{{ dest }}\\" }
+      tags: always
+    - name: Run continuous hunts (rc 1 = error, not findings)
+      ansible.windows.win_shell: "{{ run_hunts_win }}"
+      vars: { glob: 'continuous\Get-*.ps1' }
       changed_when: false
-    - ansible.windows.win_find: { paths: "{{ out }}", patterns: ["*.tsv"] }
+      tags: [continuous]
+    - name: Run active hunts (rc 1 = error, not findings)
+      ansible.windows.win_shell: "{{ run_hunts_win }}"
+      vars: { glob: 'active\Get-*.ps1' }
+      changed_when: false
+      tags: [active]
+    - name: Collect findings
+      ansible.windows.win_find: { paths: "{{ out }}", patterns: ["*.tsv"] }
       register: found
-    - ansible.builtin.fetch:
+      tags: always
+    - name: Fetch findings to the controller
+      ansible.builtin.fetch:
         src: "{{ item.path }}"
         dest: "{{ playbook_dir }}/../findings/{{ hostvars.localhost.run_id }}/{{ inventory_hostname }}/"
         flat: true
       loop: "{{ found.files }}"
+      tags: always
     - name: Don't leave findings on the box for Red to read
       ansible.windows.win_file: { path: "{{ out }}", state: absent }
+      tags: always
