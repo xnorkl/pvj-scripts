@@ -1,0 +1,24 @@
+# Reproducible Ansible control node for the range. A person runs the playbooks (AI may not).
+# Usage:
+#   docker compose -f deploy/compose.yml build
+#   docker compose -f deploy/compose.yml run --rm controller ansible-playbook hunt.yml -e run=t0
+#   ... --tags continuous   (timer sweep)   |   ansible-playbook ssh-rotate.yml   |   hunt.yml --tags active
+#
+# Networking is bridge. The range VPN runs on the HOST and a bridge container does NOT inherit it:
+#   either route 100.80.0.0/21 into the container, or run the VPN client inside it (NET_ADMIN + /dev/net/tun).
+# Fill in ../ansible/inventory.yml first (cp from inventory.example.yml); it is gitignored.
+name: pvj-deploy
+services:
+  controller:
+    image: pvj-controller
+    build: { context: .., dockerfile: docker/controller.Dockerfile }
+    working_dir: /work/ansible
+    environment:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+      ANSIBLE_PRIVATE_KEY_FILE: /root/.ssh/id_key
+    volumes:
+      - ../ansible:/work/ansible
+      - ../linux:/work/linux:ro
+      - ../windows:/work/windows:ro
+      - ../findings:/work/findings
+      - ${SSH_KEY:-~/.ssh/github}:/root/.ssh/id_key:ro
