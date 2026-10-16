@@ -20,11 +20,14 @@ Note: check for ssh service failures with `sshd -t`.
 ## Threat hunting (living off the land)
 
 Read-only. FAIL = looks malicious, WARN = review, INFO = inventory.
+Continuous = safe on a controller-side timer; active = run on demand (reads live processes/logs).
 
-| Hunt | Linux (`sudo`, `linux/hunt/`) | Windows (admin, `windows/hunt/`) |
-|---|---|---|
-| Persistence | `get-autostart-findings.sh` | `Get-AutostartFinding.ps1` |
-| sshd config | `get-sshd-config-findings.sh` | `Get-SshdConfigFinding.ps1` |
+| Hunt | Scan | Linux (`sudo`, `linux/hunt/`) | Windows (admin, `windows/hunt/`) |
+|---|---|---|---|
+| Persistence | continuous | `get-autostart-findings.sh` | `Get-AutostartFinding.ps1` |
+| sshd config | continuous | `get-sshd-config-findings.sh` | `Get-SshdConfigFinding.ps1` |
+| Privesc | continuous | `get-privesc-findings.sh` | `Get-PrivescFinding.ps1` |
+| Living off the land | active | `get-lotl-findings.sh` | `Get-LolbinFinding.ps1` |
 
 ## Script rules
 
@@ -48,6 +51,8 @@ Windows paths are in brackets when they differ.
 | `reset-ssh-host-keys` | Rotate host keys. | old keys in `/root/ssh-hostkeys-<ts>/` [`%ProgramData%\ssh\hostkeys-<ts>\`] |
 | `get-sshd-config-findings` | Audit sshd for backdoors. | — |
 | `get-autostart-findings` | Hunt persistence. | — |
+| `get-privesc-findings` / `Get-PrivescFinding` | Hunt privilege escalation (SUID, caps, sudoers / sticky-keys, services). | — |
+| `get-lotl-findings` / `Get-LolbinFinding` | Hunt living-off-the-land execution (reverse shells / certutil, mshta). | — |
 
 ## Ansible (`ansible/`)
 
@@ -67,4 +72,4 @@ Hunt scripts are re-copied per run (a Red-modified copy gets overwritten) and fi
 - Windows: use WinRM, not SSH; `Restart-Service sshd` drops SSH sessions. Use `-WhatIf` for a dry run.
 - Passwords are untouched. Change them separately.
 
-Tests (Docker only): `./tests/linux/test-ssh-rotation.sh`, `./tests/linux/test-autostart.sh`, `./tests/linux/test-ansible.sh` (also needs `ansible-core` + `community.docker`)
+Tests (Docker only): `./tests/linux/test-ssh-rotation.sh`, `./tests/linux/test-autostart.sh`, `./tests/linux/test-privesc.sh`, `./tests/linux/test-lotl.sh`, `./tests/linux/test-ansible.sh` (also needs `ansible-core` + `community.docker`)
