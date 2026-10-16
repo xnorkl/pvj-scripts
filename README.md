@@ -14,7 +14,7 @@ Note: check for ssh service failures with `sshd -t`.
 | 3. Revoke | `get-ssh-authorized-keys.sh \| revoke-ssh-keys.sh team.pub` | `Get-SshAuthorizedKey.ps1 \| Revoke-SshKey.ps1 -ApprovedKeyPath team.pub` | re-plant fails |
 | 4. Reset files | `get-ssh-authorized-keys.sh \| reset-ssh-authorized-keys.sh team.pub` | `Get-SshAuthorizedKey.ps1 \| Reset-SshAuthorizedKey.ps1 -ApprovedKeyPath team.pub` | hashes |
 | 5. Host keys | `reset-ssh-host-keys.sh` | `Reset-SshHostKey.ps1` | stolen host key |
-| 6. Audit sshd config | `../hunt/get-sshd-config-findings.sh` | `..\hunt\Get-SshdConfigFinding.ps1` | ForceCommand/CA/rc persistence |
+| 6. Audit sshd config | `../hunt/continuous/get-sshd-config-findings.sh` | `..\hunt\continuous\Get-SshdConfigFinding.ps1` | ForceCommand/CA/rc persistence |
 | 7. Re-hunt | steps 1 + 6 | steps 1 + 6 | re-plant means Red still has a shell |
 
 ## Threat hunting (living off the land)
@@ -22,7 +22,9 @@ Note: check for ssh service failures with `sshd -t`.
 Read-only. FAIL = looks malicious, WARN = review, INFO = inventory.
 Continuous = safe on a controller-side timer; active = run on demand (reads live processes/logs).
 
-| Hunt | Scan | Linux (`sudo`, `linux/hunt/`) | Windows (admin, `windows/hunt/`) |
+Scripts live in `hunt/<scan>/` (e.g. `linux/hunt/continuous/`), so Ansible can run a class with `--tags`.
+
+| Hunt | Scan | Linux (`sudo`, `linux/hunt/<scan>/`) | Windows (admin, `windows/hunt/<scan>/`) |
 |---|---|---|---|
 | Persistence | continuous | `get-autostart-findings.sh` | `Get-AutostartFinding.ps1` |
 | sshd config | continuous | `get-sshd-config-findings.sh` | `Get-SshdConfigFinding.ps1` |
@@ -58,12 +60,25 @@ Windows paths are in brackets when they differ.
 
 ```sh
 cd ansible && cp inventory.example.yml inventory.yml     # fill in from the handout (gitignored)
-ansible-playbook hunt.yml -e run=baseline                # -> ../findings/baseline/<host>/<script>.tsv
-ansible-playbook hunt.yml -e run=t1 && diff -r ../findings/baseline ../findings/t1   # what Red added
+ansible-playbook hunt.yml -e run=baseline                # all hunts -> ../findings/baseline/<host>/<script>.tsv
+ansible-playbook hunt.yml -e run=t1 --tags continuous    # timer sweep: persistence, sshd, privesc only
+ansible-playbook hunt.yml -e run=t1 --tags active        # on demand: live processes / LOLBins
+diff -r ../findings/baseline ../findings/t1              # what Red added since the last sweep
 ansible-playbook ssh-rotate.yml                          # uses ../team.pub; -e approved_pub=... for extra keys
 ansible-playbook ssh-hostkeys.yml --tags hostkeys        # never runs without the tag; refreshes known_hosts
 ```
 Hunt scripts are re-copied per run (a Red-modified copy gets overwritten) and findings are deleted from the host after they're fetched.
+
+## Containers
+
+One controller image (`docker/controller.Dockerfile`) runs the playbooks for both testing and the range.
+
+```sh
+./tests/test-compose.sh                 # Linux target + ansible controller: hunts, playbooks, tag selection
+./tests/test-compose.sh windows         # also boots a real Windows target (dockur/windows) — KVM Linux host only
+docker compose -f deploy/compose.yml run --rm controller ansible-playbook hunt.yml -e run=t0   # against the range
+```
+Deploy networking is bridge; the range VPN runs on the host, so route `100.80.0.0/21` into the controller or run the VPN client inside it (see `deploy/compose.yml`).
 
 ## Gotchas
 - Run revoke (3) before reset (4). Revoke reads the keys that are still in the files.
@@ -72,4 +87,5 @@ Hunt scripts are re-copied per run (a Red-modified copy gets overwritten) and fi
 - Windows: use WinRM, not SSH; `Restart-Service sshd` drops SSH sessions. Use `-WhatIf` for a dry run.
 - Passwords are untouched. Change them separately.
 
-Tests (Docker only): `./tests/linux/test-ssh-rotation.sh`, `./tests/linux/test-autostart.sh`, `./tests/linux/test-privesc.sh`, `./tests/linux/test-lotl.sh`, `./tests/linux/test-ansible.sh` (also needs `ansible-core` + `community.docker`)
+Fast unit tests (Docker only): `./tests/linux/test-ssh-rotation.sh`, `test-autostart.sh`, `test-privesc.sh`, `test-lotl.sh`, `test-ansible.sh` (last also needs host `ansible-core` + `community.docker`).
+End-to-end (Docker Compose, no host ansible): `./tests/test-compose.sh`.
