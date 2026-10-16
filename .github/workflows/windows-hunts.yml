@@ -31,6 +31,7 @@ jobs:
           Get-ChildItem windows/hunt -Recurse -Filter 'Get-*.ps1' | ForEach-Object {
             $name = $_.BaseName
             try {
+              $global:LASTEXITCODE = 0   # a hunt that finds nothing falls off the end without exit; don't read a stale/null code
               $r = @(& $_.FullName)
               $code = $LASTEXITCODE
               # same TSV as hunt.yml: status<TAB>check<TAB>object<TAB>detail, tabs/newlines flattened
