@@ -1,0 +1,57 @@
+name: linux-hunts
+# Runs the Linux hunt scripts across a distro matrix (dpkg / rpm / pacman families) to catch
+# portability breaks. Each leg plants fixtures, runs the hunts, asserts detection, and uploads TSVs.
+on:
+  push:
+    branches: [ci/linux-hunts]
+  pull_request:
+    paths: ["linux/hunt/**", "tests/ci/**", ".github/workflows/linux-hunts.yml"]
+  workflow_dispatch:
+
+jobs:
+  hunts:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: "ubuntu:22.04",  tag: ubuntu-2204 }
+          - { image: "ubuntu:24.04",  tag: ubuntu-2404 }
+          - { image: "debian:12",     tag: debian-12 }
+          - { image: "fedora:latest", tag: fedora }
+          - { image: "rockylinux:9",  tag: rocky-9 }
+          - { image: "archlinux:latest", tag: arch }
+    container: ${{ matrix.image }}
+    name: ${{ matrix.tag }}
+    steps:
+      - name: Install deps
+        shell: bash
+        run: |
+          set -e
+          if command -v apt-get >/dev/null; then
+            apt-get update -qq
+            apt-get install -y -qq git bash coreutils findutils openssh-server cron sudo libcap2-bin python3 procps gawk grep
+          elif command -v dnf >/dev/null; then
+            # NOT coreutils: rocky/fedora ship coreutils-single and requesting coreutils conflicts
+            dnf install -y -q git findutils openssh-server cronie sudo libcap python3 procps-ng gawk grep diffutils
+          elif command -v pacman >/dev/null; then
+            pacman -Sy --noconfirm --needed git bash coreutils findutils openssh cronie sudo libcap python procps-ng gawk grep
+          else
+            echo "no known package manager" >&2; exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - name: Run hunts
+        shell: bash
+        env:
+          DISTRO: ${{ matrix.image }}
+        run: bash tests/ci/linux-hunts.sh
+
+      - name: Upload findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-hunt-findings-${{ matrix.tag }}
+          path: ci-findings/
+          if-no-files-found: warn
