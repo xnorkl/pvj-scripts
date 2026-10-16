@@ -89,3 +89,5 @@ Deploy networking is bridge; the range VPN runs on the host, so route `100.80.0.
 
 Fast unit tests (Docker only): `./tests/linux/test-ssh-rotation.sh`, `test-autostart.sh`, `test-privesc.sh`, `test-lotl.sh`, `test-ansible.sh` (last also needs host `ansible-core` + `community.docker`).
 End-to-end (Docker Compose, no host ansible): `./tests/test-compose.sh`.
+
+CI (GitHub Actions): `linux-hunts` runs the bash hunts across a distro matrix (Ubuntu, Debian, Fedora, Rocky, Arch) via `tests/ci/linux-hunts.sh`; `windows-hunts` runs the PowerShell hunts on `windows-latest`. Both plant fixtures, assert detection, write a step-summary table, and upload per-run TSVs as artifacts.
