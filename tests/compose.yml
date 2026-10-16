@@ -1,0 +1,28 @@
+# Usage: ./tests/test-compose.sh         (Linux target + ansible controller)
+#        ./tests/test-compose.sh windows (also boots a real Windows target; KVM Linux host only)
+name: pvj-test
+services:
+  target:
+    build: { context: .., dockerfile: tests/target.Dockerfile }
+
+  runner:
+    image: pvj-controller
+    build: { context: .., dockerfile: docker/controller.Dockerfile }
+    depends_on: [target]
+    volumes: [..:/work]
+    working_dir: /work
+    environment:
+      TARGET: target
+      SSHPASS: pvj
+    command: ["bash", "/work/tests/compose-run.sh"]
+
+  # Optional real Windows target. Needs /dev/kvm (Linux host); will NOT run on macOS/Docker Desktop.
+  windows:
+    image: dockurr/windows
+    profiles: [windows]
+    environment: { VERSION: "2022", USERNAME: pvj, PASSWORD: pvj, RAM_SIZE: 4G, CPU_CORES: "2" }
+    devices: ["/dev/kvm", "/dev/net/tun"]
+    cap_add: [NET_ADMIN]
+    ports: ["5985:5985"]        # WinRM, enabled by tests/oem/install.bat
+    volumes: ["./oem:/oem"]
+    stop_grace_period: 2m

@@ -6,7 +6,7 @@ docker run --rm -v "$PWD":/s:ro ubuntu:24.04 bash -c "$(sed -n '/^# --- containe
 exit
 # --- container ---
 set -eo pipefail
-cd /s/linux/hunt
+cd /s/linux/hunt/active
 echo "== stock image"
 ./get-lotl-findings.sh >/dev/null && echo "PASS stock exits 0" || { echo "FAIL stock rc=$?"; exit 1; }
 

@@ -7,7 +7,7 @@ exit
 # --- container ---
 set -eo pipefail
 apt-get update -qq >/dev/null && apt-get install -y -qq sudo libcap2-bin python3 >/dev/null 2>&1
-cd /s/linux/hunt
+cd /s/linux/hunt/continuous
 echo "== stock image"
 ./get-privesc-findings.sh | grep -v '^INFO' || true
 ./get-privesc-findings.sh >/dev/null && echo "PASS stock exits 0" || { echo "FAIL stock rc=$?"; exit 1; }
