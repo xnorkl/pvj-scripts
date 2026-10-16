@@ -1,0 +1,90 @@
+name: windows-hunts
+# Exercises the Windows hunt scripts on a real Windows runner: they can only be
+# parse/regex-checked on Linux. Smoke-runs each hunt, then plants fixtures and asserts detection.
+on:
+  push:
+    branches: [ci/windows-hunts]
+  pull_request:
+    paths: ["windows/hunt/**", ".github/workflows/windows-hunts.yml"]
+  workflow_dispatch:
+
+jobs:
+  hunts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Environment
+        shell: pwsh
+        run: |
+          $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          "elevated=$admin; PS=$($PSVersionTable.PSVersion)"
+          if (-not $admin) { throw "runner is not elevated; the hunts #Require admin" }
+
+      - name: Smoke-run every hunt
+        shell: pwsh
+        run: |
+          $fail = 0
+          Get-ChildItem windows/hunt -Recurse -Filter 'Get-*.ps1' | ForEach-Object {
+            $name = $_.Name
+            try {
+              & $_.FullName *> "$env:TEMP\$name.out"
+              $code = $LASTEXITCODE
+              if ($code -ne 0 -and $code -ne 2) { "FAIL  $name exited $code"; $script:fail = 1 }
+              else { "ok    $name (exit $code)" }
+            } catch {
+              $msg = "$_"
+              # sshd audit throws when no sshd service is configured (none on the runner) -> SKIP
+              if ($name -eq 'Get-SshdConfigFinding.ps1' -and $msg -match 'sshd service not found') {
+                "SKIP  $name (no sshd service on runner)"
+              } else { "FAIL  $name threw: $msg"; $script:fail = 1 }
+            }
+          }
+          if ($fail) { throw "a hunt errored (exit 1 / unhandled)" }
+
+      - name: Plant fixtures and assert detection
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ok = $true
+          function Assert($label, [scriptblock]$cond) { if (& $cond) { "PASS $label" } else { "FAIL $label"; $script:ok = $false } }
+
+          # --- privesc fixtures ---
+          $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sethc.exe'
+          New-Item -Path $ifeo -Force | Out-Null
+          New-ItemProperty -Path $ifeo -Name Debugger -Value 'C:\Windows\System32\cmd.exe' -Force | Out-Null
+          New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer' -Force | Out-Null
+          New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer' -Name AlwaysInstallElevated -Value 1 -PropertyType DWord -Force | Out-Null
+          New-Item -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer' -Force | Out-Null
+          New-ItemProperty -Path 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer' -Name AlwaysInstallElevated -Value 1 -PropertyType DWord -Force | Out-Null
+          try { Add-MpPreference -ExclusionPath 'C:\pvj-test' -ErrorAction Stop; $defender = $true } catch { $defender = $false }
+
+          # --- autostart fixtures ---
+          New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name pvjtest `
+            -Value 'powershell -nop -w hidden -enc SQBFAFgAIABuAGUAdwAtAG8AYgBqAGUAYwB0AA==' -Force | Out-Null
+          schtasks /Create /TN pvjtest /TR "mshta http://127.0.0.1/x.hta" /SC ONLOGON /F | Out-Null
+
+          $privesc = (Get-ChildItem windows/hunt -Recurse -Filter Get-PrivescFinding.ps1).FullName
+          $autostart = (Get-ChildItem windows/hunt -Recurse -Filter Get-AutostartFinding.ps1).FullName
+          $ErrorActionPreference = 'Continue'   # don't let a benign non-terminating error inside a hunt abort us
+          $p = & $privesc;   $pt = ($p   | ForEach-Object { ($_.PSObject.Properties.Value) -join "`t" }) -join "`n"
+          $a = & $autostart; $at = ($a   | ForEach-Object { ($_.PSObject.Properties.Value) -join "`t" }) -join "`n"
+          $ErrorActionPreference = 'Stop'
+          $p | Format-Table -Auto | Out-String | Write-Host
+          $a | Where-Object { $_.Check -in 'run','task' } | Format-Table -Auto | Out-String | Write-Host
+
+          Assert 'privesc flags sethc IFEO debugger'   { $pt -match 'FAIL\tstickykeys' }
+          Assert 'privesc flags AlwaysInstallElevated' { $pt -match 'FAIL\talwayselevated' }
+          if ($defender) { Assert 'privesc flags Defender exclusion' { $pt -match 'defender\texclusion:path' } } else { 'SKIP Defender exclusion (Add-MpPreference unavailable)' }
+          Assert 'autostart flags encoded-PS Run key'  { $at -match 'FAIL\trun' }
+          Assert 'autostart flags mshta task'          { $at -match 'FAIL\ttask' }
+
+          # --- cleanup (runner is ephemeral, but keep it tidy) ---
+          Remove-Item $ifeo -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer' AlwaysInstallElevated -ErrorAction SilentlyContinue
+          Remove-ItemProperty 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer' AlwaysInstallElevated -ErrorAction SilentlyContinue
+          Remove-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' pvjtest -ErrorAction SilentlyContinue
+          schtasks /Delete /TN pvjtest /F | Out-Null
+          if ($defender) { Remove-MpPreference -ExclusionPath 'C:\pvj-test' -ErrorAction SilentlyContinue }
+
+          if (-not $ok) { throw "a detection assertion failed" }
